@@ -49,7 +49,7 @@ resource logAnalyticsWorkspace 'Microsoft.OperationalInsights/workspaces@2022-10
   name: logAnalyticsWorkspaceName
   location: location
   properties: {
-    retentionInDays: 7
+    retentionInDays: 30
     sku: {
       name: 'PerGB2018'
     }
