@@ -1,0 +1,19 @@
+# Visual Studio and IDE state
+.vs/
+.idea/
+.vscode/
+*.user
+*.suo
+
+# .NET build output
+**/bin/
+**/obj/
+
+# Frontend dependencies and build output
+**/node_modules/
+**/dist/
+
+# Local configuration and secrets
+**/.env
+**/.env.*
+!**/.env.example
