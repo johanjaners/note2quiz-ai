@@ -100,6 +100,20 @@ npm ci
 npm run build
 ```
 
+## GitHub Container Registry
+
+The backend image workflow tests the backend and builds the existing root `Dockerfile` on pull requests. Pushes to `main` also publish `ghcr.io/<owner>/<repository>/backend` with `sha-<commit>` and `build-<run>` tags, plus `latest`.
+
+Before enabling the workflow, configure these repository settings:
+
+1. Enable GitHub Actions under **Settings > Actions > General**.
+2. Keep the repository default **Workflow permissions** set to **Read repository contents permission**. The pull-request validation job requests only `contents: read`.
+3. The publishing job requests `contents: read` and `packages: write`, and runs only for pushes to `main`.
+4. If the package already exists, open its **Package settings > Manage Actions access** and grant this repository access to the package.
+5. Set the published package visibility in the repository's **Packages** settings after the first publish.
+
+The workflow uses the built-in `GITHUB_TOKEN`; no personal access token or other credential should be committed.
+
 ## Historical AWS deployment
 
 The application was previously deployed with AWS Amplify, Elastic Beanstalk, and CloudFront. That deployment is no longer treated as the live demo. The historical setup is preserved in Git history for reference while the Azure deployment is rebuilt through reviewed infrastructure changes.
