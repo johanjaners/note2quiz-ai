@@ -69,6 +69,6 @@ describe("quizService simple tests", () => {
   it("quizSession throws error on failure", async () => {
     vi.stubGlobal("fetch", vi.fn().mockResolvedValue({ ok: false }));
 
-    await expect(quizSession(123, token)).rejects.toThrow("Failed to get quiz Session");
+    await expect(quizSession(123, token)).rejects.toThrow("Failed to get quiz session");
   });
 });
