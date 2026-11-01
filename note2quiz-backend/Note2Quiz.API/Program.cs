@@ -46,14 +46,15 @@ builder.Services.AddSingleton<IChatClient>(sp =>
 
 builder.Services.AddCors(options =>
 {
+    var allowedOrigins =
+        builder.Configuration.GetSection("Cors:AllowedOrigins").Get<string[]>()
+        ?? Array.Empty<string>();
+
     options.AddPolicy(
         "AllowFrontend",
         policy =>
         {
-            policy.WithOrigins(
-                "http://localhost:8080",
-                "https://main.d2tidw0fafhzdw.amplifyapp.com"
-            )
+            policy.WithOrigins(allowedOrigins)
             .AllowAnyHeader()
             .AllowAnyMethod()
             .AllowCredentials();
@@ -119,6 +120,7 @@ using (var scope = app.Services.CreateScope())
     try
     {
         var db = scope.ServiceProvider.GetRequiredService<Note2QuizDbContext>();
+        await db.Database.MigrateAsync();
         await SeedData.InitializeAsync(db);
     }
     catch (Exception ex)

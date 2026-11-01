@@ -1,79 +1,114 @@
 # Note2QuizAI
-> Full-stack AI application with AWS deployment (Amplify, Elastic Beanstalk, CloudFront)
 
-AI-powered quiz generator that converts uploaded notes into quiz questions using Azure AI Vision (OCR) and Azure OpenAI.
+Note2QuizAI is a full-stack application that turns uploaded study notes into quiz sessions. The backend uses ASP.NET Core and PostgreSQL. Azure AI Vision extracts text from an uploaded image, and Azure OpenAI generates structured quiz questions.
 
-## Live Demo
-Frontend: https://main.d2tidw0fafhzdw.amplifyapp.com
+## Current status
 
-## Overview
-Note2QuizAI allows users to upload an image of their notes and automatically generate quiz questions.
+The repository is maintained as a standalone project. The previous AWS deployment is retired and is kept only as historical implementation context. The current deployment target is Azure, but no live Azure application is claimed by this README until the new deployment is verified.
 
-The system extracts text from the uploaded image using Azure AI Vision and sends the extracted text to Azure OpenAI to generate structured quiz questions. The backend is built with ASP.NET Core Web API and the frontend with React and TypeScript.
+## Architecture
 
-## My Contributions
-- Deployed full-stack application to AWS (Amplify, Elastic Beanstalk, CloudFront)
-- Configured HTTPS backend access via CloudFront
-- Diagnosed and resolved CORS issues between frontend and backend
-- Managed environment variables and production configuration
-- Implemented AI-powered quiz generation service using Azure OpenAI
-- Implemented quiz submission and scoring logic
-- Built REST API endpoints using a service-layer architecture
-- Added validation in the service flow for reliable quiz generation and submission handling
-- Implemented global error handling middleware for consistent API responses
-- Implemented unit tests for backend services (OpenAIService integration and quiz generation logic) using xUnit and Moq
-- Followed clean dependency flow: Controller → Service → Repository / AI integrations
+```text
+React + Vite + Clerk
+          |
+          v
+ASP.NET Core API  --->  PostgreSQL (Neon in hosted environments)
+          |
+          +-----------> Azure AI Vision (OCR)
+          |
+          +-----------> Azure OpenAI (quiz generation)
+```
 
-## Tech Stack
+The backend exposes a health endpoint at `/health` and applies EF Core migrations before seeding the local database. Authentication is handled by Clerk using JWT bearer validation in the API.
 
-Backend  
-- ASP.NET Core Web API  
-- Entity Framework Core  
-- PostgreSQL  
+## Technology
 
-Frontend  
-- React  
-- TypeScript  
+Backend: .NET 10, ASP.NET Core Web API, Entity Framework Core, Npgsql, PostgreSQL
 
-AI  
-- Azure OpenAI  
-- Azure AI Vision  
+Frontend: React, TypeScript, Vite, Clerk
 
-Cloud / DevOps  
-- AWS Amplify  
-- AWS Elastic Beanstalk  
-- AWS CloudFront  
+AI services: Azure AI Vision, Azure OpenAI
 
-Testing  
-- xUnit  
-- Moq
+Testing: xUnit, Moq, Vitest, Testing Library
 
-## Deployment (AWS)
+Local infrastructure: Docker, Docker Compose, PostgreSQL
 
-Deployed and configured independently in production.
+## Local setup
 
-Frontend  
-- AWS Amplify (React app hosting)  
-- Automatic CI/CD from GitHub  
+### Backend and PostgreSQL
 
-Backend  
-- AWS Elastic Beanstalk (ASP.NET Core API)  
+Docker Desktop must be running.
 
-Networking / Security  
-- AWS CloudFront used as HTTPS proxy for backend  
-- CORS configured for Amplify frontend domain  
+```bash
+docker compose up --build
+```
 
-Infrastructure Notes  
-- Environment variables configured in Amplify and Elastic Beanstalk  
-- Resolved production issues: CORS, API routing, environment config  
+The API is available at `http://localhost:8080` and the health check is available at `http://localhost:8080/health`.
 
-## Architecture Flow
-Image Upload  
-↓  
-Azure AI Vision (OCR)  
-↓  
-Azure OpenAI (Quiz Generation)  
-↓  
-QuizService  
-↓  
-Quiz Session + Questions
+The compose file uses a local PostgreSQL volume. It does not connect to the hosted Neon database and it does not contain cloud credentials.
+
+Azure Vision and Azure OpenAI values are optional for starting the API and are required only for quiz generation. Supply them through environment variables or .NET user secrets. Never commit real keys.
+
+### Frontend
+
+Copy `note2quiz-ui/.env.example` to `note2quiz-ui/.env.local` and provide the Clerk publishable key for the intended Clerk instance.
+
+```bash
+cd note2quiz-ui
+npm ci
+npm run dev
+```
+
+The Vite development server normally runs at `http://localhost:5173`.
+
+## Configuration
+
+The hosted API is configured through environment variables. The relevant names are:
+
+```text
+ConnectionStrings__DefaultConnection
+Cors__AllowedOrigins__0
+Clerk__Authority
+Clerk__Audience
+AzureVision__Endpoint
+AzureVision__Key
+AzureOpenAI__Endpoint
+AzureOpenAI__ApiKey
+AzureOpenAI__DeploymentName
+```
+
+For local development, use .NET user secrets for API credentials:
+
+```bash
+dotnet user-secrets set "AzureVision:Endpoint" "https://..."
+dotnet user-secrets set "AzureVision:Key" "..."
+dotnet user-secrets set "AzureOpenAI:Endpoint" "https://..."
+dotnet user-secrets set "AzureOpenAI:ApiKey" "..."
+dotnet user-secrets set "AzureOpenAI:DeploymentName" "..."
+```
+
+## Verification
+
+The repository runs backend restore, build, and tests plus a frontend production build through GitHub Actions for pushes and pull requests targeting `main`.
+
+```bash
+cd note2quiz-backend
+dotnet test Note2Quiz.slnx
+
+cd ../note2quiz-ui
+npm ci
+npm run build
+```
+
+## Historical AWS deployment
+
+The application was previously deployed with AWS Amplify, Elastic Beanstalk, and CloudFront. That deployment is no longer treated as the live demo. The historical setup is preserved in Git history for reference while the Azure deployment is rebuilt through reviewed infrastructure changes.
+
+## Roadmap
+
+1. Verify the local Docker and PostgreSQL workflow.
+2. Add reviewed Azure infrastructure with Bicep.
+3. Deploy the API as an Azure Container App on the Consumption plan with scale-to-zero enabled.
+4. Deploy the React frontend to Azure Static Web Apps on the Free plan.
+5. Configure hosted secrets and the Clerk/Neon endpoints outside source control.
+6. Add a live URL here only after end-to-end verification.
