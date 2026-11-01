@@ -107,9 +107,10 @@ The backend image workflow tests the backend and builds the existing root `Docke
 Before enabling the workflow, configure these repository settings:
 
 1. Enable GitHub Actions under **Settings > Actions > General**.
-2. Set **Workflow permissions** to **Read and write permissions** so the workflow's `GITHUB_TOKEN` can write packages.
-3. Allow the repository's Actions workflows to create and write packages under **Settings > Actions > General > Workflow permissions** if that option is shown.
-4. Set the published package visibility in the repository's **Packages** settings after the first publish.
+2. Keep the repository default **Workflow permissions** set to **Read repository contents permission**. The pull-request validation job requests only `contents: read`.
+3. The publishing job requests `contents: read` and `packages: write`, and runs only for pushes to `main`.
+4. If the package already exists, open its **Package settings > Manage Actions access** and grant this repository access to the package.
+5. Set the published package visibility in the repository's **Packages** settings after the first publish.
 
 The workflow uses the built-in `GITHUB_TOKEN`; no personal access token or other credential should be committed.
 
