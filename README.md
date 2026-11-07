@@ -4,7 +4,7 @@ Note2QuizAI is a full-stack application that turns uploaded study notes into qui
 
 ## Current status
 
-The repository is maintained as a standalone project. The previous AWS deployment is retired and is kept only as historical implementation context. The current deployment target is Azure, but no live Azure application is claimed by this README until the new deployment is verified.
+The repository is maintained as a standalone project. The backend image is published to GitHub Container Registry from `main`, and the reviewed Azure Container Apps deployment is defined in [infra/main.bicep](infra/main.bicep). The frontend is not deployed by that Bicep template.
 
 ## Architecture
 
@@ -100,29 +100,21 @@ npm ci
 npm run build
 ```
 
-## GitHub Container Registry
+## Azure deployment
 
-The backend image workflow tests the backend and builds the existing root `Dockerfile` on pull requests. Pushes to `main` also publish `ghcr.io/<owner>/<repository>/backend` with `sha-<commit>` and `build-<run>` tags, plus `latest`.
+The current deployment flow is documented in [infra/README.md](infra/README.md). In summary:
 
-Before enabling the workflow, configure these repository settings:
+```text
+GitHub Actions (main) -> Dockerfile -> GHCR image -> Azure Container Apps
+                                                    |
+                                                    +-> /health
+```
 
-1. Enable GitHub Actions under **Settings > Actions > General**.
-2. Keep the repository default **Workflow permissions** set to **Read repository contents permission**. The pull-request validation job requests only `contents: read`.
-3. The publishing job requests `contents: read` and `packages: write`, and runs only for pushes to `main`.
-4. If the package already exists, open its **Package settings > Manage Actions access** and grant this repository access to the package.
-5. Set the published package visibility in the repository's **Packages** settings after the first publish.
+The workflow builds and tests the backend on pull requests. A push to `main` publishes the backend image to `ghcr.io/<owner>/<repository>/backend` with commit-SHA, build-number, and `latest` tags. The Azure deployment then uses the selected GHCR image through the local Bicep parameter file.
 
-The workflow uses the built-in `GITHUB_TOKEN`; no personal access token or other credential should be committed.
-
-## Historical AWS deployment
-
-The application was previously deployed with AWS Amplify, Elastic Beanstalk, and CloudFront. That deployment is no longer treated as the live demo. The historical setup is preserved in Git history for reference while the Azure deployment is rebuilt through reviewed infrastructure changes.
+The Container App routes public HTTPS traffic on port `443` to the API's internal port `8080`, and its health endpoint is `https://<container-app-fqdn>/health`. The Bicep template configures scale-to-zero with `minReplicas: 0` and permits at most one replica with `maxReplicas: 1`. The React frontend is not yet deployed through this Bicep template and remains a separate future deployment step.
 
 ## Roadmap
 
-1. Verify the local Docker and PostgreSQL workflow.
-2. Add reviewed Azure infrastructure with Bicep.
-3. Deploy the API as an Azure Container App on the Consumption plan with scale-to-zero enabled.
-4. Deploy the React frontend to Azure Static Web Apps on the Free plan.
-5. Configure hosted secrets and the Clerk/Neon endpoints outside source control.
-6. Add a live URL here only after end-to-end verification.
+1. Deploy the React frontend separately.
+2. Verify the hosted API and frontend end to end.

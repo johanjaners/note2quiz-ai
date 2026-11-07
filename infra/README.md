@@ -1,9 +1,29 @@
 # Azure Container Apps
 
-Deploy the resource-group-scoped scaffold with:
+The Azure deployment provisions the Log Analytics workspace, Consumption Container Apps environment, and external Note2QuizAI API Container App from [main.bicep](main.bicep). The API image is built by the root [Dockerfile](../Dockerfile), published to GHCR by GitHub Actions after a push to `main`, and then selected in the local parameter file:
 
-```bash
-az deployment group create --resource-group <resource-group> --template-file infra/main.bicep --parameters location=<location> logAnalyticsWorkspaceName=<workspace-name> containerAppsEnvironmentName=<environment-name> containerAppName=<app-name> containerImage=<existing-image> databaseConnectionString=<secret> azureOpenAIEndpoint=<endpoint> azureOpenAIKey=<secret> azureOpenAIDeployment=<deployment> azureVisionEndpoint=<endpoint> azureVisionKey=<secret> clerkAuthority=<authority> clerkAudience=<audience> allowedFrontendOrigin=<origin>
+```text
+GitHub Actions -> Dockerfile -> GHCR -> Azure Container Apps -> API :8080
+                                                               |
+                                                               +-> /health
 ```
 
-Secrets are passed at deployment time; do not add them to this repository. The container image must exist before deployment. The React Static Web App is a later, separate step.
+The API scales to zero when idle (`minReplicas: 0`) and is capped at one replica (`maxReplicas: 1`). The React frontend is not deployed through this Bicep template; it is a separate later step.
+
+Create `infra/main.bicepparam` locally from the placeholder structure in `main.bicepparam.example`, then set the required deployment values. The real parameter file is ignored by Git, and no secrets belong in Git.
+
+Review the resource-group deployment with:
+
+```bash
+az deployment group what-if --resource-group note2quiz --parameters infra/main.bicepparam
+```
+
+Apply it with:
+
+```bash
+az deployment group create --resource-group note2quiz --name note2quiz-infra --parameters infra/main.bicepparam
+```
+
+The container image must exist in GHCR before deployment and permit unauthenticated pulls, because this template does not configure registry credentials. For an image intended to be public, set the GHCR package visibility to public in its package settings after publishing. If the image must remain private, add Container Apps registry authentication to the template before deploying.
+
+Pass secrets through the local parameter file or another deployment-time mechanism; never commit them. After deployment, verify the API health endpoint at `https://<container-app-fqdn>/health` and confirm that it returns a successful response.
