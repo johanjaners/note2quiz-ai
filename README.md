@@ -112,7 +112,7 @@ GitHub Actions (main) -> Dockerfile -> GHCR image -> Azure Container Apps
 
 The workflow builds and tests the backend on pull requests. A push to `main` publishes the backend image to `ghcr.io/<owner>/<repository>/backend` with commit-SHA, build-number, and `latest` tags. The Azure deployment then uses the selected GHCR image through the local Bicep parameter file.
 
-The Container App exposes the API on port `8080`, and its health endpoint is `/health`. The Bicep template configures scale-to-zero with `minReplicas: 0` and permits at most one replica with `maxReplicas: 1`. The React frontend is not yet deployed through this Bicep template and remains a separate future deployment step.
+The Container App routes public HTTPS traffic on port `443` to the API's internal port `8080`, and its health endpoint is `https://<container-app-fqdn>/health`. The Bicep template configures scale-to-zero with `minReplicas: 0` and permits at most one replica with `maxReplicas: 1`. The React frontend is not yet deployed through this Bicep template and remains a separate future deployment step.
 
 ## Roadmap
 
