@@ -24,4 +24,6 @@ Apply it with:
 az deployment group create --resource-group note2quiz --name note2quiz-infra --parameters infra/main.bicepparam
 ```
 
-The container image must exist in GHCR before deployment. Pass secrets through the local parameter file or another deployment-time mechanism; never commit them. After deployment, verify the API health endpoint at `https://<container-app-fqdn>/health` and confirm that it returns a successful response.
+The container image must exist in GHCR before deployment and permit unauthenticated pulls, because this template does not configure registry credentials. For an image intended to be public, set the GHCR package visibility to public in its package settings after publishing. If the image must remain private, add Container Apps registry authentication to the template before deploying.
+
+Pass secrets through the local parameter file or another deployment-time mechanism; never commit them. After deployment, verify the API health endpoint at `https://<container-app-fqdn>/health` and confirm that it returns a successful response.
