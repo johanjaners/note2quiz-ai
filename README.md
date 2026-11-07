@@ -1,57 +1,43 @@
 # Note2QuizAI
 
-Note2QuizAI is a full-stack application that turns uploaded study notes into quiz sessions. The backend uses ASP.NET Core and PostgreSQL. Azure AI Vision extracts text from an uploaded image, and Azure OpenAI generates structured quiz questions.
+Note2QuizAI turns uploaded study notes into quiz sessions using Azure AI Vision for text extraction and Azure OpenAI for question generation.
 
-## Current status
+## Live deployment
 
-The repository is maintained as a standalone project. The backend image is published to GitHub Container Registry from `main`, and the reviewed Azure Container Apps deployment is defined in [infra/main.bicep](infra/main.bicep). The frontend is not deployed by that Bicep template.
+- Frontend: https://white-flower-05e98d103.5.azurestaticapps.net
+- API health: https://note2quiz-api.agreeablemeadow-fe18a8ae.westeurope.azurecontainerapps.io/health
 
 ## Architecture
 
 ```text
-React + Vite + Clerk
-          |
-          v
-ASP.NET Core API  --->  PostgreSQL (Neon in hosted environments)
-          |
-          +-----------> Azure AI Vision (OCR)
-          |
-          +-----------> Azure OpenAI (quiz generation)
+Browser
+  -> Azure Static Web Apps: React, Vite, Clerk
+  -> Azure Container Apps: ASP.NET Core API
+       -> Neon PostgreSQL
+       -> Azure AI Vision
+       -> Azure OpenAI
 ```
 
-The backend exposes a health endpoint at `/health` and applies EF Core migrations before seeding the local database. Authentication is handled by Clerk using JWT bearer validation in the API.
+The browser loads the frontend from Static Web Apps; the frontend calls the API in Container Apps. Clerk handles authentication, and the API validates its JWTs.
 
 ## Technology
 
-Backend: .NET 10, ASP.NET Core Web API, Entity Framework Core, Npgsql, PostgreSQL
+- Backend: .NET 10, ASP.NET Core, EF Core, Npgsql, PostgreSQL
+- Frontend: React, TypeScript, Vite, Clerk
+- AI: Azure AI Vision, Azure OpenAI
+- Delivery: Docker, Docker Compose, Bicep, GitHub Actions, GHCR, Azure Container Apps, Azure Static Web Apps
 
-Frontend: React, TypeScript, Vite, Clerk
+## Local development
 
-AI services: Azure AI Vision, Azure OpenAI
-
-Testing: xUnit, Moq, Vitest, Testing Library
-
-Local infrastructure: Docker, Docker Compose, PostgreSQL
-
-## Local setup
-
-### Backend and PostgreSQL
-
-Docker Desktop must be running.
+Start the API and local PostgreSQL with Docker Desktop running:
 
 ```bash
 docker compose up --build
 ```
 
-The API is available at `http://localhost:8080` and the health check is available at `http://localhost:8080/health`.
+The API is available at `http://localhost:8080` and its health endpoint at `http://localhost:8080/health`. Configure Azure Vision and Azure OpenAI credentials outside Git for quiz generation.
 
-The compose file uses a local PostgreSQL volume. It does not connect to the hosted Neon database and it does not contain cloud credentials.
-
-Azure Vision and Azure OpenAI values are optional for starting the API and are required only for quiz generation. Supply them through environment variables or .NET user secrets. Never commit real keys.
-
-### Frontend
-
-Copy `note2quiz-ui/.env.example` to `note2quiz-ui/.env.local` and provide the Clerk publishable key for the intended Clerk instance.
+For the frontend, create `note2quiz-ui/.env.local` from `note2quiz-ui/.env.example` and configure the intended Clerk publishable key and API URL:
 
 ```bash
 cd note2quiz-ui
@@ -59,62 +45,34 @@ npm ci
 npm run dev
 ```
 
-The Vite development server normally runs at `http://localhost:5173`.
-
-## Configuration
-
-The hosted API is configured through environment variables. The relevant names are:
-
-```text
-ConnectionStrings__DefaultConnection
-Cors__AllowedOrigins__0
-Clerk__Authority
-Clerk__Audience
-AzureVision__Endpoint
-AzureVision__Key
-AzureOpenAI__Endpoint
-AzureOpenAI__ApiKey
-AzureOpenAI__DeploymentName
-```
-
-For local development, use .NET user secrets for API credentials:
-
-```bash
-dotnet user-secrets set "AzureVision:Endpoint" "https://..."
-dotnet user-secrets set "AzureVision:Key" "..."
-dotnet user-secrets set "AzureOpenAI:Endpoint" "https://..."
-dotnet user-secrets set "AzureOpenAI:ApiKey" "..."
-dotnet user-secrets set "AzureOpenAI:DeploymentName" "..."
-```
-
 ## Verification
 
-The repository runs backend restore, build, and tests plus a frontend production build through GitHub Actions for pushes and pull requests targeting `main`.
+Run from the repository root:
 
 ```bash
-cd note2quiz-backend
-dotnet test Note2Quiz.slnx
-
-cd ../note2quiz-ui
+dotnet test note2quiz-backend/Note2Quiz.slnx
+cd note2quiz-ui
 npm ci
+npm test
 npm run build
 ```
 
-## Azure deployment
-
-The current deployment flow is documented in [infra/README.md](infra/README.md). In summary:
+## Delivery flow
 
 ```text
-GitHub Actions (main) -> Dockerfile -> GHCR image -> Azure Container Apps
-                                                    |
-                                                    +-> /health
+Pull request
+  -> backend tests and Docker validation
+  -> frontend production build
+  -> Bicep validation
+
+Push to main
+  -> backend tests -> Docker image -> GHCR
+  -> frontend build -> Azure Static Web Apps
+
+Azure CLI + Bicep
+  -> Container Apps infrastructure and API configuration
 ```
 
-The workflow builds and tests the backend on pull requests. A push to `main` publishes the backend image to `ghcr.io/<owner>/<repository>/backend` with commit-SHA, build-number, and `latest` tags. The Azure deployment then uses the selected GHCR image through the local Bicep parameter file.
+Frontend tests are run locally with `npm test`; the current PR workflow builds the frontend but does not run its tests. Publishing a backend image does not automatically deploy it to Container Apps.
 
-The Container App routes public HTTPS traffic on port `443` to the API's internal port `8080`, and its health endpoint is `https://<container-app-fqdn>/health`. The Bicep template configures scale-to-zero with `minReplicas: 0` and permits at most one replica with `maxReplicas: 1`. The React frontend is not yet deployed through this Bicep template and remains a separate future deployment step.
-
-## Roadmap
-
-1. Deploy the React frontend separately.
-2. Verify the hosted API and frontend end to end.
+See [infra/README.md](infra/README.md) for deployment details, configuration, and verification.
