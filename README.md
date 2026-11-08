@@ -10,13 +10,13 @@ Note2QuizAI turns uploaded study notes into quiz sessions using Azure AI Vision 
 ## Architecture
 
 ```mermaid
-flowchart LR
-  Browser --> Frontend["Azure Static Web Apps<br/>React, Vite, Clerk"]
-  Frontend -->|Bearer JWT; API validates JWT| API["Azure Container Apps<br/>ASP.NET Core API"]
-  Frontend -->|Authentication| Clerk["Clerk<br/>authentication provider"]
-  API --> Neon["Neon PostgreSQL"]
-  API --> Vision["Azure AI Vision"]
-  API --> OpenAI["Azure OpenAI"]
+flowchart TB
+  Browser --> Frontend["Static Web Apps<br/>React · Vite · Clerk"]
+  Frontend -->|JWT| API["Container Apps<br/>ASP.NET Core API<br/>Validates JWT"]
+  Frontend --> Clerk["Clerk<br/>Authentication"]
+  API --> Neon["Neon<br/>PostgreSQL"]
+  API --> Vision["Azure AI<br/>Vision"]
+  API --> OpenAI["Azure<br/>OpenAI"]
 ```
 
 ## Technology
@@ -57,15 +57,15 @@ npm run build
 ## Delivery flow
 
 ```mermaid
-flowchart LR
-  PR["Pull request"] --> Backend["Backend tests and Docker validation"]
-  PR --> Frontend["Frontend tests and production build"]
+flowchart TB
+  PR["Pull request"] --> Backend["Backend tests<br/>Docker validation"]
+  PR --> Frontend["Frontend tests<br/>Production build"]
   PR --> Bicep["Bicep validation"]
-  Main["Merge to main"] --> GHCR["Backend image published to GHCR"]
-  Main --> SWA["Frontend deployed to Azure Static Web Apps"]
-  GHCR -->|Manually select image| Params["Ignored local Bicep parameter file"]
-  Params --> CLI["Azure CLI + Bicep"]
-  CLI --> ACA["Azure Container Apps"]
+  Main["Merge to main"] --> GHCR["Publish image<br/>to GHCR"]
+  Main --> SWA["Deploy frontend<br/>Static Web Apps"]
+  GHCR -->|Manual image selection| Params["Local Bicep<br/>parameters (ignored)"]
+  Params --> CLI["Azure CLI<br/>Bicep deployment"]
+  CLI --> ACA["Container Apps<br/>ASP.NET API"]
 ```
 
 Publishing to GHCR does not automatically redeploy Container Apps. See [infra/README.md](infra/README.md) for deployment and verification details.
