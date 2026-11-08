@@ -30,4 +30,15 @@ az deployment group what-if --resource-group note2quiz --parameters ./infra/main
 az deployment group create --resource-group note2quiz --name note2quiz-infra --parameters ./infra/main.bicepparam
 ```
 
-After deployment, verify the [API health endpoint](https://note2quiz-api.agreeablemeadow-fe18a8ae.westeurope.azurecontainerapps.io/health). The endpoint reports API status; it does not verify every external dependency.
+After deployment, use the `containerAppName` configured in your local parameter file to look up that app's FQDN and check its health. Run in PowerShell; enter only the app name when prompted, not the contents of the parameter file:
+
+```powershell
+$appName = Read-Host 'Container App name (containerAppName in infra/main.bicepparam)'
+$fqdn = az containerapp show --resource-group note2quiz --name $appName --query properties.configuration.ingress.fqdn --output tsv
+if ($LASTEXITCODE -ne 0 -or [string]::IsNullOrWhiteSpace($fqdn)) {
+    throw 'Could not retrieve the Container App FQDN.'
+}
+Invoke-RestMethod -Uri "https://$fqdn/health"
+```
+
+The health endpoint reports API status; it does not verify every external dependency.

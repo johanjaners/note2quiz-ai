@@ -9,16 +9,15 @@ Note2QuizAI turns uploaded study notes into quiz sessions using Azure AI Vision 
 
 ## Architecture
 
-```text
-Browser
-  -> Azure Static Web Apps: React, Vite, Clerk
-  -> Azure Container Apps: ASP.NET Core API
-       -> Neon PostgreSQL
-       -> Azure AI Vision
-       -> Azure OpenAI
+```mermaid
+flowchart LR
+  Browser --> Frontend["Azure Static Web Apps<br/>React, Vite, Clerk"]
+  Frontend -->|Bearer JWT; API validates JWT| API["Azure Container Apps<br/>ASP.NET Core API"]
+  Frontend -->|Authentication| Clerk["Clerk<br/>authentication provider"]
+  API --> Neon["Neon PostgreSQL"]
+  API --> Vision["Azure AI Vision"]
+  API --> OpenAI["Azure OpenAI"]
 ```
-
-The browser loads the frontend from Static Web Apps; the frontend calls the API in Container Apps. Clerk handles authentication, and the API validates its JWTs.
 
 ## Technology
 
@@ -45,11 +44,9 @@ npm ci
 npm run dev
 ```
 
-## Verification
+Run the backend and frontend checks from the repository root:
 
-Run from the repository root:
-
-```bash
+```powershell
 dotnet test note2quiz-backend/Note2Quiz.slnx
 cd note2quiz-ui
 npm ci
@@ -59,20 +56,16 @@ npm run build
 
 ## Delivery flow
 
-```text
-Pull request
-  -> backend tests and Docker validation
-  -> frontend production build
-  -> Bicep validation
-
-Push to main
-  -> backend tests -> Docker image -> GHCR
-  -> frontend build -> Azure Static Web Apps
-
-Azure CLI + Bicep
-  -> Container Apps infrastructure and API configuration
+```mermaid
+flowchart LR
+  PR["Pull request"] --> Backend["Backend tests and Docker validation"]
+  PR --> Frontend["Frontend tests and production build"]
+  PR --> Bicep["Bicep validation"]
+  Main["Merge to main"] --> GHCR["Backend image published to GHCR"]
+  Main --> SWA["Frontend deployed to Azure Static Web Apps"]
+  GHCR -->|Manually select image| Params["Ignored local Bicep parameter file"]
+  Params --> CLI["Azure CLI + Bicep"]
+  CLI --> ACA["Azure Container Apps"]
 ```
 
-Frontend tests are run locally with `npm test`; the current PR workflow builds the frontend but does not run its tests. Publishing a backend image does not automatically deploy it to Container Apps.
-
-See [infra/README.md](infra/README.md) for deployment details, configuration, and verification.
+Publishing to GHCR does not automatically redeploy Container Apps. See [infra/README.md](infra/README.md) for deployment and verification details.
