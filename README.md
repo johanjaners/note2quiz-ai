@@ -1,6 +1,8 @@
 # Note2QuizAI
 
-Note2QuizAI turns uploaded study notes into quiz sessions using Azure AI Vision for text extraction and Azure OpenAI for question generation.
+Note2QuizAI turns uploaded study notes into quizzes using Azure AI Vision and Azure OpenAI.
+
+It runs a containerized ASP.NET Core API on Azure Container Apps with a React frontend on Azure Static Web Apps, PostgreSQL, Bicep IaC, and GitHub Actions.
 
 ## Live deployment
 
@@ -24,7 +26,23 @@ flowchart TB
 - Backend: .NET 10, ASP.NET Core, EF Core, Npgsql, PostgreSQL
 - Frontend: React, TypeScript, Vite, Clerk
 - AI: Azure AI Vision, Azure OpenAI
-- Delivery: Docker, Docker Compose, Bicep, GitHub Actions, GHCR, Azure Container Apps, Azure Static Web Apps
+- Infrastructure and delivery: Docker, Docker Compose, Bicep (IaC), GitHub Actions, GHCR, Azure Container Apps, Azure Static Web Apps
+
+## Delivery flow
+
+```mermaid
+flowchart TB
+  PR["Pull request"] --> Backend["Backend tests<br/>Docker validation"]
+  PR --> Frontend["Frontend tests<br/>Production build"]
+  PR --> Bicep["Bicep validation"]
+  Main["Merge to main"] --> GHCR["Publish image<br/>to GHCR"]
+  Main --> SWA["Deploy frontend<br/>Static Web Apps"]
+  GHCR -->|Manual image selection| Params["Local Bicep<br/>parameters (ignored)"]
+  Params --> CLI["Azure CLI<br/>Bicep deployment"]
+  CLI --> ACA["Container Apps<br/>ASP.NET API"]
+```
+
+Publishing to GHCR does not automatically redeploy Container Apps. See [infra/README.md](infra/README.md) for deployment and verification details.
 
 ## Local development
 
@@ -53,19 +71,3 @@ npm ci
 npm test
 npm run build
 ```
-
-## Delivery flow
-
-```mermaid
-flowchart TB
-  PR["Pull request"] --> Backend["Backend tests<br/>Docker validation"]
-  PR --> Frontend["Frontend tests<br/>Production build"]
-  PR --> Bicep["Bicep validation"]
-  Main["Merge to main"] --> GHCR["Publish image<br/>to GHCR"]
-  Main --> SWA["Deploy frontend<br/>Static Web Apps"]
-  GHCR -->|Manual image selection| Params["Local Bicep<br/>parameters (ignored)"]
-  Params --> CLI["Azure CLI<br/>Bicep deployment"]
-  CLI --> ACA["Container Apps<br/>ASP.NET API"]
-```
-
-Publishing to GHCR does not automatically redeploy Container Apps. See [infra/README.md](infra/README.md) for deployment and verification details.
